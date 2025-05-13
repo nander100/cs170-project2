@@ -52,6 +52,9 @@ You can also only update the visualization of the v values by
 
 # use random library if needed
 import random
+import matplotlib.pyplot as plt
+import numpy as np
+import math
 
 
 def value_iteration(env, gamma, max_iterations, logger):
@@ -86,17 +89,41 @@ def value_iteration(env, gamma, max_iterations, logger):
     NUM_STATES = env.observation_space.n
     NUM_ACTIONS = env.action_space.n
     TRANSITION_MODEL = env.trans_model
-
-    v = [0] * NUM_STATES
+    v = [0] * NUM_STATES # initialize v = 0
     pi = [0] * NUM_STATES
     # Visualize the value and policy 
     logger.log(0, v, pi)
     # At each iteration, you may need to keep track of pi to perform logging
-   
-### Please finish the code below ##############################################
-###############################################################################
+    threashhold = 1e-4
+    for i in range(max_iterations): # itterate across all the episodes
+        v_prev = v.copy() # create a a copy of the old v to compare with the new v
+        for state in range(NUM_STATES):
+            # calcuate the values for each action in the state
+            action_values = []
+            for action in range(NUM_ACTIONS):
+                current_action_value = 0 # stores the value for the current action
 
-###############################################################################
+                #Calculates the value of the current action
+                #t is a list of four-element tuples in the form of (p, s_, r, terminal)
+                for prob, s_prime, reward, terminal in TRANSITION_MODEL[state][action]:
+                    #IMPORTANT: Bellman equation update
+                    current_action_value += prob * (reward + gamma * v_prev[s_prime]) 
+
+                action_values.append(current_action_value) # add the expected value to a list of values
+
+            # update the expected value of the state 
+            # IMPORTATNT TO DO BEFORE UPDATING POLICY OR ELSE WILL EXIT AFTER 0 ITTERATIONS
+            v[state] = max(action_values)
+
+            # Update policy to use the best action
+            pi[state] = action_values.index(max(action_values))
+        
+        # log the data
+        logger.log(i, v, pi)
+        if max(abs(v[s] - v_prev[s]) for s in range(NUM_STATES)) < threashhold:
+            print(f"Value iteration converged after {i} iterations")
+            break
+
     return pi
 
 

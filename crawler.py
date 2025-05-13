@@ -14,7 +14,6 @@ It is suggested to test your code in the grid world environments before this one
 
 The package `matplotlib` is needed for the program to run.
 
-
 The Crawler environment has discrete state and action spaces
 and provides both model-based and model-free access.
 
@@ -23,7 +22,7 @@ It has the following properties:
     env.action_space.n          # the number of actions
   
 
-Once a terminal state is reached the environment should be (re)initialized by
+Once a terminal state is reached, the environment should be (re)initialized by
     s = env.reset()
 where s is the initial state.
 An experience (sample) can be collected from s by taking an action a as follows:
