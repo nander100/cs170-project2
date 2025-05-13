@@ -52,6 +52,9 @@ You can also only update the visualization of the v values by
 
 # use random library if needed
 import random
+import matplotlib.pyplot as plt
+import numpy as np
+import math
 
 
 def value_iteration(env, gamma, max_iterations, logger):
@@ -86,8 +89,7 @@ def value_iteration(env, gamma, max_iterations, logger):
     NUM_STATES = env.observation_space.n
     NUM_ACTIONS = env.action_space.n
     TRANSITION_MODEL = env.trans_model
-
-    v = [0] * NUM_STATES
+    v = [0] * NUM_STATES # initialize v = 0
     pi = [0] * NUM_STATES
     # Visualize the value and policy 
     logger.log(0, v, pi)
@@ -95,6 +97,18 @@ def value_iteration(env, gamma, max_iterations, logger):
    
 ### Please finish the code below ##############################################
 ###############################################################################
+
+    v_prev = np.zeros(NUM_STATES) # to compare with the previous value function
+    # v_curr = np.zeros(num_states) # to store the current value function
+    #itterate the value function however many times
+    for i in range(max_iterations):
+        v = np.zeros(NUM_STATES) # reset the value function
+
+        #itterate through all the states
+        for s in range(NUM_STATES):
+            #check if the state is terminal
+            # if s in :
+            #     continue 
 
 ###############################################################################
     return pi
