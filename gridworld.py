@@ -170,11 +170,63 @@ def policy_iteration(env, gamma, max_iterations, logger):
     pi = [random.randint(0, NUM_ACTIONS-1)] * NUM_STATES
     # Visualize the initial value and policy
     logger.log(0, v, pi)
+    
+    #My code starts here
+    # At each iteration, you may need to keep track of pi to perform logging
+    threashhold = 1e-4
+    # Initialize with a random policy
+    pi = [random.randint(0, NUM_ACTIONS-1) for _ in range(NUM_STATES)]
+    for i in range(max_iterations): # itterate across all the episodes
+        v_prev = v.copy()
+        delta = 0 # change in value for each policy itteration
+        for state in range(NUM_STATES):
+            # get the current state from the policy
+            curr_action = pi[state] 
+            current_action_value = 0
+            #Calculates the value of the current action
+            #t is a list of four-element tuples in the form of (p, s_, r, terminal)
+            for prob, s_prime, reward, terminal in TRANSITION_MODEL[state][curr_action]:
+                #IMPORTANT: Bellman equation update
+                current_action_value += prob * (reward + gamma * v_prev[s_prime]) 
 
-### Please finish the code below ##############################################
-###############################################################################
+            # This takes the highest change because we want the values for all the states to converge.
+            v[state] = current_action_value # updates the value for the new action 
+            delta = max(delta, abs(v[state] - v_prev[state])) # track the change
+        
+        # Visualize the initial value and policy
+        logger.log(i, v, pi)
 
-###############################################################################
+        # determines if the expected value converges
+        if delta < threashhold:
+            break
+
+        # POLICY ITTERATION STAGE
+        policy_stable = True # keep track of whether or not the policy is stable
+        for state in range(NUM_STATES):
+            old_action = pi[state]
+            
+            # Find best action based on one-step lookahead
+            action_values = []
+            for action in range(NUM_ACTIONS):
+                action_value = 0
+                for prob, next_state, reward, terminal in TRANSITION_MODEL[state][action]:
+                    action_value += prob * (reward + gamma * v[next_state])
+                action_values.append(action_value)
+            
+            # Update policy to use the best action
+            pi[state] = action_values.index(max(action_values))
+            
+            # Check if policy has changed
+            if old_action != pi[state]:
+                policy_stable = False
+        
+        # Log the updated policy
+        logger.log(i, v, pi)
+        
+        # Check if policy has converged
+        if policy_stable:
+            print(f"Policy converged after {i+1} iterations")
+            break
     return pi
 
 
