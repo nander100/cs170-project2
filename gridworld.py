@@ -126,7 +126,6 @@ def value_iteration(env, gamma, max_iterations, logger):
 
     return pi
 
-
 def policy_iteration(env, gamma, max_iterations, logger):
     """
     Optional: Implement policy iteration to return a deterministic policy for all states.
@@ -229,14 +228,13 @@ def policy_iteration(env, gamma, max_iterations, logger):
             break
     return pi
 
+import random # Make sure to import the random module
+import math   # For math.inf
 
-def q_learning(env, gamma, max_iterations, logger):
+def q_learning(env, gamma, max_iterations, logger, convergence_tolerance=1e-4):
     """
     Implement Q-learning to return a deterministic policy for all states.
-    Please note that in RL you do not have access to the transition model 
-    and the reward function, i.e. you cannot call env.trans_model. 
-    Instead you need to learn policies by collecting samples using env.step
-    See lines 32-42 for more details. 
+    Includes a convergence check based on the change in the value function.
 
     Parameters
     ----------
@@ -245,10 +243,14 @@ def q_learning(env, gamma, max_iterations, logger):
     gamma: float
         the discount factor
     max_iterations: integer
-        the maximum number of iterations (either training episodes or total steps) that should be performed;
-        the algorithm should terminate when max_iterations is exceeded.
+        the maximum number of iterations (total steps) that should be performed;
+        the algorithm should terminate when max_iterations is exceeded or convergence is met.
+        Consider increasing this if the agent is not converging.
     logger: app.grid_world.App.Logger
         a logger instance to perform test and record the iteration process.
+    convergence_tolerance: float, optional
+        The tolerance for the infinity norm of the value function difference
+        to determine convergence. Default is 1e-4.
     
     Returns
     -------
@@ -260,30 +262,95 @@ def q_learning(env, gamma, max_iterations, logger):
     NUM_STATES = env.observation_space.n
     NUM_ACTIONS = env.action_space.n
     
+    # Initialize value function and policy
     v = [0] * NUM_STATES
     pi = [0] * NUM_STATES
-    # Visualize the initial value and policy
     logger.log(0, v, pi)
-
-    #########################
-    # Adjust superparameters as you see fit
-    #
-    # parameter for the epsilon-greedy method to trade off exploration and exploitation
-    eps = 1
-    # learning rate for updating q values based on sample estimates
-    alpha = 0.1
-    #########################
-
     
-
-### Please finish the code below ##############################################
-###############################################################################
-
-###############################################################################
+    # Hyperparameters
+    alpha = 0.1        # Learning rate
+    epsilon = 1.0      # Exploration rate
+    epsilon_decay = 0.999  # Decay rate for epsilon
+    min_epsilon = 0.05     # Minimum exploration rate
+    
+    # Convergence parameters
+    convergence_tolerance = 0.1  # Tolerance for convergence
+    min_iterations_before_convergence = 1000  # Minimum steps before checking convergence
+    check_convergence_every = 100  # Check for convergence every N steps
+    
+    # Initialize Q-table
+    Q = [[0.0 for _ in range(NUM_ACTIONS)] for _ in range(NUM_STATES)]
+    prev_Q = [[0.0 for _ in range(NUM_ACTIONS)] for _ in range(NUM_STATES)]
+    
+    # Learning loop
+    steps = 0
+    episodes = 0
+    
+    while steps < max_iterations:
+        episodes += 1
+        current_state = env.reset()
+        terminal = False
+        
+        # One episode
+        while not terminal and steps < max_iterations:
+            steps += 1
+            
+            # Choose action (epsilon-greedy)
+            if random.random() < epsilon:
+                action = random.randint(0, NUM_ACTIONS - 1)
+            else:
+                action = pi[current_state]
+            
+            # Take action
+            next_state, reward, terminal, _ = env.step(action)
+            
+            # Q-learning update
+            best_next_q = max(Q[next_state]) if not terminal else 0
+            Q[current_state][action] += alpha * (reward + gamma * best_next_q - Q[current_state][action])
+            
+            # Update policy and value
+            best_action = Q[current_state].index(max(Q[current_state]))
+            pi[current_state] = best_action
+            v[current_state] = Q[current_state][best_action]
+            
+            # Move to next state
+            current_state = next_state
+            
+            # Decay exploration rate
+            epsilon = max(min_epsilon, epsilon * epsilon_decay)
+            
+            # Periodically log progress
+            if steps % check_convergence_every == 0:
+                logger.log(steps, v, pi)
+                
+                # Convergence check (after minimum iterations)
+                if steps > min_iterations_before_convergence:
+                    # Calculate maximum change in Q-values
+                    max_change = 0.0
+                    for s in range(NUM_STATES):
+                        for a in range(NUM_ACTIONS):
+                            max_change = max(max_change, abs(Q[s][a] - prev_Q[s][a]))
+                    
+                    # copy current Q-values for next comparison
+                    for s in range(NUM_STATES):
+                        for a in range(NUM_ACTIONS):
+                            prev_Q[s][a] = Q[s][a]
+                    
+                    # Print convergence status
+                    logger.log(steps, v, pi)
+                    print(f"Step {steps}: max Q-value change = {max_change:.4f}")
+                    
+                    # Check if converged
+                    if max_change < convergence_tolerance:
+                        print(f"Converged after {steps} steps, {episodes} episodes")
+                        steps = max_iterations  # Force exit from outer loop
+                        break
+    
+    # Final logging
+    logger.log(steps, v, pi)
+    print(f"Q-learning completed: {episodes} episodes, {steps} steps")
+    
     return pi
-
-
-
 if __name__ == "__main__":
     from app.grid_world import App
     import tkinter as tk
